@@ -9,8 +9,8 @@ PlannerNode::PlannerNode()
     "/map", 10, 
     std::bind(&PlannerNode::mapCallback, this, std::placeholders::_1));
   
-  goal_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
-    "/goal_point", 10,
+  goal_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+    "/goal_pose", 10,
     std::bind(&PlannerNode::goalCallback, this, std::placeholders::_1));
   
   odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -38,13 +38,13 @@ void PlannerNode::mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
   }
 }
 
-void PlannerNode::goalCallback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
+void PlannerNode::goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
-  goal_ = *msg;  
+  goal_pose_ = *msg;  
   goal_received_ = true;
   
   RCLCPP_INFO(this->get_logger(), "Received goal: (%.2f, %.2f)", 
-    msg->point.x, msg->point.y);
+    msg->pose.position.x, msg->pose.position.y);
   
   state_ = State::WAITING_FOR_ROBOT_TO_REACH_GOAL;
   RCLCPP_INFO(this->get_logger(), "State: WAITING_FOR_ROBOT_TO_REACH_GOAL");
@@ -76,8 +76,8 @@ bool PlannerNode::goalReached() const
     return false;
   }
   
-  double dx = goal_.point.x - robot_pose_.position.x;
-  double dy = goal_.point.y - robot_pose_.position.y;
+  double dx = goal_pose_.pose.position.x - robot_pose_.position.x;
+  double dy = goal_pose_.pose.position.y - robot_pose_.position.y;
   double distance = std::sqrt(dx * dx + dy * dy);
   
   const double GOAL_THRESHOLD = 0.5;
@@ -107,7 +107,13 @@ void PlannerNode::planPath()
   }
   
   RCLCPP_INFO(this->get_logger(), "Running A* pathfinding...");
-  nav_msgs::msg::Path path = planner_.planPath(current_map_, robot_pose_, goal_);
+  
+  // Convert PoseStamped to PointStamped for planner
+  geometry_msgs::msg::PointStamped goal_point;
+  goal_point.header = goal_pose_.header;
+  goal_point.point = goal_pose_.pose.position;
+  
+  nav_msgs::msg::Path path = planner_.planPath(current_map_, robot_pose_, goal_point);
   
   if (path.poses.empty()) {
     RCLCPP_WARN(this->get_logger(), "No valid path found to goal!");

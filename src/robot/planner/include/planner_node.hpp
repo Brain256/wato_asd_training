@@ -6,7 +6,7 @@
 #include "planner_core.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
-#include "geometry_msgs/msg/point_stamped.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "nav_msgs/msg/path.hpp"
 
 class PlannerNode : public rclcpp::Node {
@@ -26,7 +26,7 @@ class PlannerNode : public rclcpp::Node {
     robot::PlannerCore planner_;
     
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
-    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr goal_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
@@ -34,7 +34,7 @@ class PlannerNode : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr timer_;
 
     void mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
-    void goalCallback(const geometry_msgs::msg::PointStamped::SharedPtr msg);
+    void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
     void timerCallback();
@@ -44,7 +44,7 @@ class PlannerNode : public rclcpp::Node {
     void planPath();
     
     nav_msgs::msg::OccupancyGrid current_map_;
-    geometry_msgs::msg::PointStamped goal_;
+    geometry_msgs::msg::PoseStamped goal_pose_;
     geometry_msgs::msg::Pose robot_pose_;
 
     bool map_received_ = false;
