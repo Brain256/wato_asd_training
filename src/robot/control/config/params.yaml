@@ -1,3 +1,6 @@
-# control_node:
-#   ros__parameters:
-    
+control_node:
+  ros__parameters:
+    # Pure Pursuit Controller parameters
+    lookahead_distance: 1.0    # Distance ahead to look for path point (meters)
+    linear_speed: 0.5          # Constant forward speed (m/s)
+    goal_tolerance: 0.1        # Distance to consider goal reached (meters)
