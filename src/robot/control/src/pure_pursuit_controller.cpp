@@ -28,28 +28,23 @@ geometry_msgs::msg::Twist PurePursuitController::computeCommand()
 {
     geometry_msgs::msg::Twist cmd_vel;
 
-    // Check if we have necessary data
     if (!current_path_ || !robot_odom_) {
-        return cmd_vel;  // Return zero velocity if no data
+        return cmd_vel;  
     }
 
-    // Check if path is empty
     if (current_path_->poses.empty()) {
         return cmd_vel;
     }
 
-    // Check if goal is reached
     if (isGoalReached()) {
-        return cmd_vel;  // Stop the robot
+        return cmd_vel;  
     }
 
-    // Find the lookahead point
     auto lookahead_point = findLookaheadPoint();
     if (!lookahead_point) {
-        return cmd_vel;  // No valid lookahead point found
+        return cmd_vel; 
     }
 
-    // Compute velocity command
     cmd_vel = computeVelocity(*lookahead_point);
 
     return cmd_vel;
@@ -60,20 +55,28 @@ std::optional<geometry_msgs::msg::PoseStamped> PurePursuitController::findLookah
     const auto& robot_pos = robot_odom_->pose.pose.position;
     const auto& poses = current_path_->poses;
 
-    // Find the first point that is beyond the lookahead distance
+    if (poses.empty()) {
+        return std::nullopt;
+    }
+
+    size_t closest_idx = 0;
+    double closest_dist = std::numeric_limits<double>::infinity();
     for (size_t i = 0; i < poses.size(); ++i) {
-        double distance = computeDistance(robot_pos, poses[i].pose.position);
-        if (distance >= lookahead_distance_) {
+        double d = computeDistance(robot_pos, poses[i].pose.position);
+        if (d < closest_dist) {
+            closest_dist = d;
+            closest_idx = i;
+        }
+    }
+
+    for (size_t i = closest_idx; i < poses.size(); ++i) {
+        double d = computeDistance(robot_pos, poses[i].pose.position);
+        if (d >= lookahead_distance_) {
             return poses[i];
         }
     }
 
-    // If no point is beyond lookahead distance, return the last point
-    if (!poses.empty()) {
-        return poses.back();
-    }
-
-    return std::nullopt;
+    return poses.back();
 }
 
 geometry_msgs::msg::Twist PurePursuitController::computeVelocity(
@@ -84,33 +87,35 @@ geometry_msgs::msg::Twist PurePursuitController::computeVelocity(
     const auto& robot_pos = robot_odom_->pose.pose.position;
     const auto& robot_quat = robot_odom_->pose.pose.orientation;
 
-    // Extract robot's current yaw
     double robot_yaw = extractYaw(robot_quat);
 
-    // Calculate vector from robot to target
     double dx = target.pose.position.x - robot_pos.x;
     double dy = target.pose.position.y - robot_pos.y;
 
-    // Calculate angle to target
     double target_angle = std::atan2(dy, dx);
 
-    // Calculate steering angle (difference between target angle and robot's heading)
     double steering_angle = target_angle - robot_yaw;
 
-    // Normalize steering angle to [-pi, pi]
     while (steering_angle > M_PI) steering_angle -= 2 * M_PI;
     while (steering_angle < -M_PI) steering_angle += 2 * M_PI;
 
-    // Compute curvature for the circular arc
-    // Using Pure Pursuit formula: curvature = (2 * sin(steering_angle)) / lookahead_distance
+    if (std::abs(steering_angle) > M_PI / 2.0) {
+        cmd_vel.linear.x = 0.0;
+
+        double turn_rate = turn_gain_ * steering_angle;
+        if (turn_rate > max_angular_speed_) turn_rate = max_angular_speed_;
+        if (turn_rate < -max_angular_speed_) turn_rate = -max_angular_speed_;
+        cmd_vel.angular.z = turn_rate;
+        return cmd_vel;
+    }
+
     double curvature = (2.0 * std::sin(steering_angle)) / lookahead_distance_;
-
-    // Set linear velocity (constant forward speed)
     cmd_vel.linear.x = linear_speed_;
+    double w = cmd_vel.linear.x * curvature;
 
-    // Set angular velocity based on curvature
-    // angular_velocity = linear_velocity * curvature
-    cmd_vel.angular.z = linear_speed_ * curvature;
+    if (w > max_angular_speed_) w = max_angular_speed_;
+    if (w < -max_angular_speed_) w = -max_angular_speed_;
+    cmd_vel.angular.z = w;
 
     return cmd_vel;
 }
@@ -126,7 +131,6 @@ double PurePursuitController::computeDistance(
 
 double PurePursuitController::extractYaw(const geometry_msgs::msg::Quaternion& quat) const
 {
-    // Convert quaternion to yaw using the formula from map_memory
     const double siny_cosp = 2.0 * (quat.w * quat.z + quat.x * quat.y);
     const double cosy_cosp = 1.0 - 2.0 * (quat.y * quat.y + quat.z * quat.z);
     return std::atan2(siny_cosp, cosy_cosp);

@@ -28,6 +28,7 @@ class MapMemoryNode : public rclcpp::Node {
     double distance_threshold_;  
     bool costmap_updated_;
     bool should_update_map_;
+    bool initial_map_published_;
 };
 
 #endif

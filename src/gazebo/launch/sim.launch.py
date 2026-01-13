@@ -26,7 +26,7 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=['/model/robot/pose@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
                    '/model/robot/pose_static@tf2_msgs/msg/TFMessage@ignition.msgs.Pose_V',
-                   '/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist',
+                   '/cmd_vel@geometry_msgs/msg/Twist@ignition.msgs.Twist',
                    '/imu@sensor_msgs/msg/Imu@ignition.msgs.IMU',
                 #    '/lidar/points@sensor_msgs/msg/PointCloud2@gz.msgs.PointCloudPacked',
                    '/lidar@sensor_msgs/msg/LaserScan@ignition.msgs.LaserScan',

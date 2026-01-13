@@ -33,6 +33,12 @@ public:
     // Setter for goal tolerance
     void setGoalTolerance(double tolerance) { goal_tolerance_ = tolerance; }
 
+    // Setter for maximum angular speed
+    void setMaxAngularSpeed(double max_w) { max_angular_speed_ = max_w; }
+
+    // Setter for turn gain when rotating in place
+    void setTurnGain(double gain) { turn_gain_ = gain; }
+
 private:
     // Helper methods
     std::optional<geometry_msgs::msg::PoseStamped> findLookaheadPoint();
@@ -52,6 +58,8 @@ private:
     double lookahead_distance_;
     double goal_tolerance_;
     double linear_speed_;
+    double max_angular_speed_ = 1.5; // rad/s
+    double turn_gain_ = 2.0;         // proportional gain for in-place rotation
 };
 
 }  // namespace robot

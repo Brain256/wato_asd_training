@@ -68,15 +68,8 @@ nav_msgs::msg::Path PlannerCore::planPath(
         continue;
       }
       
-      double move_cost;
-      if(neighbor.x != current.x && neighbor.y != current.y){
-        move_cost = std::sqrt(2.0);
-      } 
-      else{
-        move_cost = 1.0; 
-      }
-      
-      double tentative_g_score = g_score[current] + move_cost;
+      double step_cost = moveCost(current, neighbor, map);
+      double tentative_g_score = g_score[current] + step_cost;
       
       bool is_better_path = false;
       
@@ -132,7 +125,7 @@ bool PlannerCore::isValidCell(const CellIndex& cell,
   }
   
   int value = getCellValue(cell, map);
-  
+
   return value >= 0 && value < 50;
 }
 
@@ -175,6 +168,22 @@ std::vector<CellIndex> PlannerCore::getNeighbors(const CellIndex& cell) const
   neighbors.emplace_back(cell.x - 1, cell.y - 1); 
   
   return neighbors;
+}
+
+double PlannerCore::moveCost(const CellIndex& current,
+                             const CellIndex& neighbor,
+                             const nav_msgs::msg::OccupancyGrid& map) const
+{
+  double base = (neighbor.x != current.x && neighbor.y != current.y) ? std::sqrt(2.0) : 1.0;
+  int occ = getCellValue(neighbor, map);
+  if (occ < 0) {
+    return base;
+  }
+  int capped = std::min(29, occ);
+  double frac = static_cast<double>(capped) / 30.0;
+  const double weight = 3.5;
+  double penalty = weight * frac * frac;
+  return base + penalty;
 }
 
 nav_msgs::msg::Path PlannerCore::reconstructPath(

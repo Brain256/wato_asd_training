@@ -94,6 +94,11 @@ class PlannerCore {
     double heuristic(const CellIndex& current, const CellIndex& goal) const;
     
     std::vector<CellIndex> getNeighbors(const CellIndex& cell) const;
+
+    // Clearance-aware traversal cost combining step length and proximity to obstacles
+    double moveCost(const CellIndex& current,
+                    const CellIndex& neighbor,
+                    const nav_msgs::msg::OccupancyGrid& map) const;
     
     nav_msgs::msg::Path reconstructPath(
       const std::unordered_map<CellIndex, CellIndex, CellIndexHash>& came_from,
