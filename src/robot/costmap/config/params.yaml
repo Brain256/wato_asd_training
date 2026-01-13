@@ -4,7 +4,7 @@ costmap_node:
     height: 40.0
     resolution: 0.1
 
-    inflation_radius: 1.0
+    inflation_radius: 1.5
     max_cost: 100
 
     frame_id: "robot/chassis/lidar"

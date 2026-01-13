@@ -40,6 +40,9 @@ class ControlCore {
 
     // Raw node pointer for creating subscriptions/publishers
     rclcpp::Node* node_;
+
+    // Track whether last published command was zero to avoid spamming zeros
+    bool last_cmd_was_zero_ = true;
 };
 
 } 

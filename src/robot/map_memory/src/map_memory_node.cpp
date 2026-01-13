@@ -6,9 +6,10 @@ MapMemoryNode::MapMemoryNode()
       map_memory_(robot::MapMemoryCore(this->get_logger())),
       last_x_(0.0),
       last_y_(0.0),
-      distance_threshold_(1.5), 
-      costmap_updated_(false),
-      should_update_map_(false)
+    distance_threshold_(1.5), 
+    costmap_updated_(false),
+    should_update_map_(false),
+    initial_map_published_(false)
 {
 
     costmap_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
@@ -55,13 +56,15 @@ void MapMemoryNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 }
 
 void MapMemoryNode::updateMapTimer() {
-    if (should_update_map_ && costmap_updated_) {
+    // Publish initial global map upon receiving first costmap (no movement required)
+    if (costmap_updated_ && (!initial_map_published_ || should_update_map_)) {
         auto global_map = map_memory_.integrateCostmap(latest_costmap_, latest_odom_);
         
         global_map.header.stamp = this->now();
         
         map_pub_->publish(global_map);
         
+        initial_map_published_ = true;
         should_update_map_ = false;
         costmap_updated_ = false;
         

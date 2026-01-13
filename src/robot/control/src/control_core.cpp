@@ -26,7 +26,6 @@ void ControlCore::initialize(rclcpp::Node* node)
   // Create publisher
   cmd_vel_pub_ = node_->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
-  // Create timer for control loop (10 Hz = 100 ms)
   control_timer_ = node_->create_wall_timer(
       std::chrono::milliseconds(100),
       [this]() { controlLoop(); });
@@ -46,11 +45,19 @@ void ControlCore::onOdomReceived(const nav_msgs::msg::Odometry::SharedPtr msg)
 
 void ControlCore::controlLoop()
 {
-  // Compute velocity command from Pure Pursuit Controller
   geometry_msgs::msg::Twist cmd_vel = pure_pursuit_.computeCommand();
 
-  // Publish the velocity command
-  cmd_vel_pub_->publish(cmd_vel);
+  const bool is_zero =
+      cmd_vel.linear.x == 0.0 && cmd_vel.linear.y == 0.0 && cmd_vel.linear.z == 0.0 &&
+      cmd_vel.angular.x == 0.0 && cmd_vel.angular.y == 0.0 && cmd_vel.angular.z == 0.0;
+
+  if (!is_zero) {
+    cmd_vel_pub_->publish(cmd_vel);
+    last_cmd_was_zero_ = false;
+  } else if (!last_cmd_was_zero_) {
+    cmd_vel_pub_->publish(cmd_vel);
+    last_cmd_was_zero_ = true;
+  }
 }
 
 }  
